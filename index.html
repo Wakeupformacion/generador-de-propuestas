@@ -6,7 +6,6 @@
     <title>Wake Up | Generador de Propuestas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos base y variables */
         :root {
             --brand-red: #dc2626;
             --brand-dark: #991b1b;
@@ -23,6 +22,14 @@
                 print-color-adjust: exact;
             }
             .corporate-header * { color: white !important; }
+            
+            /* Ajuste para que el título no tenga bordes ni scroll al imprimir */
+            #displayTitulo { 
+                border: none !important; 
+                padding: 0 !important; 
+                overflow: hidden !important;
+                height: auto !important;
+            }
         }
 
         .loading-spinner {
@@ -34,10 +41,7 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .sparkle-button {
             background: linear-gradient(90deg, var(--brand-red), var(--brand-dark));
@@ -49,70 +53,53 @@
             transform: translateY(-1px);
         }
 
-        .sparkle-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        /* Estilo para que el área de texto del título parezca texto normal y crezca */
+        #displayTitulo {
+            resize: none;
+            overflow: hidden;
+            min-height: 2.5rem;
         }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8 font-sans">
 
     <div class="max-w-6xl mx-auto">
-        <!-- Dashboard Header -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 no-print gap-4">
             <div>
-                <h1 class="text-4xl font-black text-red-600 tracking-tighter italic">WAKE UP</h1>
-                <p class="text-slate-500 font-medium">Proposal Intelligence System</p>
+                <h1 class="text-4xl font-black text-red-600 tracking-tighter italic uppercase">WAKE UP</h1>
+                <p class="text-slate-500 font-medium">Soluciones de Formación Profesional</p>
             </div>
-            <div class="flex gap-3">
-                <button onclick="window.print()" id="btnPrint" class="hidden bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Exportar PDF
-                </button>
+            <div id="statusBadge" class="px-4 py-2 rounded-full bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                <span id="statusDot" class="w-2 h-2 bg-slate-400 rounded-full"></span>
+                Estado: Sin Clave
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- Panel de Control (Izquierda) -->
             <aside class="lg:col-span-4 no-print">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 sticky top-8">
-                    <h2 class="text-lg font-bold mb-6 text-slate-800 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                        </svg>
-                        Configuración
-                    </h2>
                     
-                    <div class="space-y-5">
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa Cliente</label>
-                            <input type="text" id="nombreCliente" placeholder="Ej: Landmar Hoteles" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition">
+                    <!-- PASO 1: CONTRASEÑA -->
+                    <div class="mb-6 pb-6 border-b border-slate-100">
+                        <label class="text-[10px] font-black text-red-600 uppercase tracking-widest block mb-2">Paso 1: Contraseña</label>
+                        <input type="password" id="inputApiKey" placeholder="Introduce la contraseña del sistema" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        <button onclick="testAndUnlock()" class="w-full mt-2 py-2 bg-slate-800 text-white text-[10px] font-black uppercase tracking-tighter rounded-lg hover:bg-black transition">Verificar e Identificar Modelo</button>
+                    </div>
+
+                    <!-- PASO 2: DATOS -->
+                    <div id="configFields" class="opacity-40 pointer-events-none transition-all duration-500 space-y-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Paso 2: Datos de la Propuesta</label>
+                        
+                        <input type="text" id="nombreCliente" placeholder="Nombre del Cliente (Ej: Landmar)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                        <input type="text" id="perfilAlumnado" placeholder="Perfil (Ej: Cocineros)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+                        <textarea id="necesidades" rows="4" placeholder="Objetivos y necesidades del cliente..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none resize-none"></textarea>
+                        
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Inversión solicitada (€)</label>
+                            <input type="number" id="presupuestoInput" placeholder="0.00" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-red-600 outline-none">
                         </div>
                         
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sector / Tipo</label>
-                            <input type="text" id="empresa" placeholder="Ej: Hostelería de lujo" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition">
-                        </div>
-
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Perfil Alumnado</label>
-                            <input type="text" id="alumnado" placeholder="Ej: Cocineros y Jefes de Partida" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition">
-                        </div>
-
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Objetivos del curso</label>
-                            <textarea id="necesidades" rows="4" placeholder="Ej: Técnicas de arroces mediterráneos..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition resize-none"></textarea>
-                        </div>
-
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Presupuesto (€)</label>
-                            <input type="number" id="presupuestoInput" placeholder="0.00" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-red-600 focus:ring-2 focus:ring-red-500 outline-none transition">
-                        </div>
-                        
-                        <button onclick="generarPropuesta()" id="btnGenerar" class="w-full sparkle-button text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-red-200 mt-4">
+                        <button onclick="generarPropuesta()" id="btnGenerar" class="w-full sparkle-button text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-red-200">
                             <span>Generar Propuesta Inteligente</span>
                             <span class="text-lg">✨</span>
                         </button>
@@ -120,306 +107,235 @@
                 </div>
             </aside>
 
-            <!-- Previsualización (Derecha) -->
             <main class="lg:col-span-8">
-                <div id="loading" class="hidden flex flex-col items-center justify-center py-32 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div id="loading" class="hidden flex flex-col items-center justify-center py-32 bg-white rounded-2xl border">
                     <div class="loading-spinner"></div>
-                    <p class="mt-6 text-slate-600 font-bold animate-pulse tracking-tight">Diseñando estrategia pedagógica...</p>
+                    <p id="loadingText" class="mt-6 text-slate-600 font-bold animate-pulse text-center px-4">Diseñando Itinerario Formativo Sugerido...</p>
                 </div>
 
-                <!-- Documento Final -->
-                <div id="proposalContainer" class="hidden bg-white rounded-2xl shadow-2xl border border-slate-100 proposal-card overflow-hidden transition-all duration-700">
-                    
-                    <!-- Header Corporativo -->
-                    <div class="corporate-header p-10 flex justify-between items-center text-white relative">
-                        <div class="relative z-10">
+                <div id="proposalContainer" class="hidden bg-white rounded-2xl shadow-2xl border border-slate-100 proposal-card overflow-hidden">
+                    <div class="corporate-header p-10 bg-red-600 text-white flex justify-between items-start relative">
+                        <div>
                             <h2 class="text-5xl font-black italic tracking-tighter">WAKE UP</h2>
-                            <p class="text-sm font-bold opacity-80 uppercase tracking-[0.3em] mt-2">Formación de Alto Impacto</p>
+                            <p class="text-xs font-bold opacity-90 uppercase tracking-[0.2em] mt-1">Soluciones de Formación Profesional</p>
                         </div>
-                        <div class="text-right relative z-10">
-                            <h3 class="text-xl font-black uppercase tracking-tighter mb-1">Propuesta Técnica</h3>
-                            <p id="displayFecha" class="text-sm font-medium opacity-70 mb-2"></p>
-                            <div class="h-1 w-12 bg-white ml-auto rounded-full"></div>
-                            <p id="displayClienteHeader" class="font-black text-xl mt-3"></p>
+                        <div class="text-right">
+                            <h3 class="text-lg font-black uppercase tracking-tight mb-1">Propuesta Formativa</h3>
+                            <p id="displayFecha" class="text-sm font-medium opacity-80 mb-2"></p>
+                            <p id="displayClienteHeader" class="font-black text-xl border-b-2 border-white inline-block"></p>
                         </div>
                     </div>
 
                     <div class="p-12">
-                        <!-- Sección: Título de la Formación -->
-                        <div class="mb-12">
-                            <div class="flex justify-between items-center mb-4 no-print">
-                                <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Formación</span>
-                                <button onclick="mejorarTitulo()" class="text-xs font-bold text-red-600 hover:text-red-800 transition">
-                                    ↻ Optimizar Título
-                                </button>
+                        <div class="mb-10">
+                            <!-- TÍTULO EDITABLE MULTILÍNEA -->
+                            <div class="mb-2 no-print">
+                                <label class="text-[9px] font-black text-red-500 uppercase tracking-[0.2em]">Título del Curso (Editable)</label>
                             </div>
-                            <input type="text" id="displayTitulo" class="w-full text-3xl font-black text-slate-900 border-b-2 border-slate-100 pb-2 focus:border-red-500 outline-none bg-transparent no-print transition-colors" placeholder="Nombre del programa">
-                            <h2 id="printTitulo" class="hidden print-only text-3xl font-black text-slate-900 mb-4"></h2>
+                            <textarea id="displayTitulo" 
+                                      rows="1" 
+                                      oninput="autoResize(this)" 
+                                      class="w-full text-3xl font-black text-slate-800 leading-tight mb-6 bg-transparent border-b border-dashed border-slate-200 focus:border-red-500 outline-none transition-colors" 
+                                      placeholder="Título de la formación"></textarea>
+                            
+                            <div class="flex flex-wrap gap-8 border-y border-slate-100 py-6">
+                                <div>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inversión del Proyecto</p>
+                                    <p id="displayPresupuesto" class="text-2xl font-black text-slate-900">0.00 €</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Duración Sugerida</p>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="displayHoras" oninput="recalcularCondiciones()" class="w-20 p-1 border-b-2 border-red-200 text-xl font-black text-slate-800 outline-none no-print">
+                                        <span class="text-xl font-black text-slate-800 print-only" id="printHoras"></span>
+                                        <span class="text-sm font-bold text-slate-400 uppercase">Horas</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="space-y-12">
-                            <!-- Análisis -->
+                        <div class="space-y-10">
                             <section>
-                                <h4 class="text-red-600 font-black uppercase text-xs tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <span class="w-6 h-[2px] bg-red-600"></span> Contexto Estratégico
-                                </h4>
-                                <p id="displayContexto" class="text-slate-600 leading-relaxed font-medium italic"></p>
+                                <h4 class="text-red-600 font-black uppercase text-[10px] tracking-[0.2em] mb-3">Contexto y Análisis</h4>
+                                <p id="displayContexto" class="text-slate-600 leading-relaxed italic whitespace-pre-line"></p>
                             </section>
 
-                            <!-- Objetivos -->
                             <section>
-                                <h4 class="text-red-600 font-black uppercase text-xs tracking-[0.2em] mb-6 flex items-center gap-2">
-                                    <span class="w-6 h-[2px] bg-red-600"></span> Objetivos de Aprendizaje
-                                </h4>
-                                <ul id="displayObjetivos" class="grid grid-cols-1 md:grid-cols-2 gap-4"></ul>
+                                <h4 class="text-red-600 font-black uppercase text-[10px] tracking-[0.2em] mb-4">Objetivos del Programa</h4>
+                                <ul id="displayObjetivos" class="space-y-3 list-none"></ul>
                             </section>
 
-                            <!-- Contenidos -->
                             <section>
-                                <div class="flex justify-between items-center mb-6 no-print">
-                                    <h4 class="text-red-600 font-black uppercase text-xs tracking-[0.2em] flex items-center gap-2">
-                                        <span class="w-6 h-[2px] bg-red-600"></span> Bloques Temáticos
-                                    </h4>
-                                    <button onclick="expandirContenidos()" class="text-xs font-bold text-red-600 hover:text-red-800 transition">
-                                        + Desarrollar Temario
-                                    </button>
+                                <div class="flex justify-between items-center mb-4 no-print">
+                                    <h4 class="text-red-600 font-black uppercase text-[10px] tracking-[0.2em]">Contenidos Detallados</h4>
+                                    <button onclick="mejorarDetalle()" class="text-[10px] font-bold text-red-600 hover:underline">Expandir Temario ✨</button>
                                 </div>
-                                <h4 class="hidden print-only text-red-600 font-black uppercase text-xs tracking-[0.2em] mb-6">Contenidos del Programa</h4>
-                                <div id="displayContenidos" class="bg-slate-50 p-8 rounded-2xl border border-slate-100 text-slate-700"></div>
+                                <div id="displayContenidos" class="bg-slate-50 p-6 rounded-xl border border-slate-100 text-slate-700 text-sm whitespace-pre-line leading-relaxed"></div>
                             </section>
 
-                            <!-- Resumen y Presupuesto -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-                                <div class="border border-slate-100 p-6 rounded-2xl">
-                                    <h4 class="text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] mb-4">Valor Añadido</h4>
-                                    <ul id="displayVentajas" class="space-y-3"></ul>
-                                </div>
-                                <div class="bg-slate-900 p-8 rounded-2xl text-white shadow-xl flex flex-col justify-center">
-                                    <div class="flex justify-between items-center mb-6">
-                                        <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Duración</span>
-                                        <div class="flex items-center gap-2">
-                                            <input type="number" id="displayHoras" class="w-12 bg-slate-800 border-none rounded p-1 text-center font-bold text-red-400 no-print">
-                                            <span class="font-bold print-only" id="printHoras"></span>
-                                            <span class="text-sm font-bold">h</span>
-                                        </div>
-                                    </div>
-                                    <div class="pt-6 border-t border-slate-800 flex justify-between items-end">
+                            <!-- CONDICIONES LEGALES -->
+                            <section class="pt-8 border-t-2 border-slate-100">
+                                <h4 class="text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] mb-6">Condiciones Generales</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 text-[11px] text-slate-600">
+                                    <div class="space-y-4">
                                         <div>
-                                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Inversión Total</p>
-                                            <p id="displayPresupuesto" class="text-3xl font-black text-white">0.00 €</p>
+                                            <p class="font-bold text-slate-800 uppercase mb-2">La propuesta Incluye:</p>
+                                            <ul class="list-disc pl-4 space-y-1">
+                                                <li>Gestión del crédito FUNDAE (si es requerido por el cliente)</li>
+                                                <li>Docencia, material pedagógico, documental necesario y diplomas</li>
+                                                <li class="font-bold text-red-600" id="condicionPersonas">Para la bonificación del 100% del presupuesto, al menos deben finalizar la formación -- trabajadores por grupo.</li>
+                                            </ul>
                                         </div>
-                                        <div class="text-right">
-                                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Exento IGIC</p>
-                                            <p class="text-xs font-bold text-red-400">Ley IVA/IGIC</p>
+                                        <div>
+                                            <p class="font-bold text-slate-800 uppercase mb-2">No incluye:</p>
+                                            <ul class="list-disc pl-4 space-y-1">
+                                                <li>7% IGIC</li>
+                                            </ul>
                                         </div>
                                     </div>
+                                    <div class="space-y-4">
+                                        <p><strong>Validez:</strong> Presupuesto válido durante 90 días desde su presentación.</p>
+                                        <p><strong>Forma de pago:</strong> A convenir según acuerdo comercial.</p>
+                                    </div>
                                 </div>
+                            </section>
+
+                            <div class="pt-8 no-print text-center">
+                                <button onclick="window.print()" class="bg-slate-900 text-white px-10 py-4 rounded-xl font-bold text-sm hover:bg-black transition shadow-lg">Descargar Propuesta PDF</button>
                             </div>
-
-                            <!-- Pie de página: Condiciones -->
-                            <footer class="mt-12 pt-8 border-t border-slate-100">
-                                <h4 class="text-slate-800 font-black uppercase text-xs tracking-[0.1em] mb-6">Condiciones Generales</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] leading-relaxed text-slate-500">
-                                    <div class="space-y-4">
-                                        <div>
-                                            <p class="font-black text-slate-800 mb-2 uppercase tracking-tighter">Incluye:</p>
-                                            <ul class="space-y-1.5 list-disc pl-4">
-                                                <li>Gestión integral del crédito FUNDAE (si se requiere).</li>
-                                                <li>Docencia experta y material pedagógico documental.</li>
-                                                <li>Diplomas acreditativos de la formación.</li>
-                                                <li class="font-bold text-red-600 italic">Para bonificación del 100%, deben finalizar el curso <span id="numAlumnosCalc" class="underline">--</span> trabajadores por grupo.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <p class="font-black text-slate-800 mb-2 uppercase tracking-tighter">Detalles adicionales:</p>
-                                            <ul class="space-y-1.5 list-disc pl-4">
-                                                <li>7% IGIC no incluido (si aplica).</li>
-                                                <li>Validez: 90 días desde la presentación.</li>
-                                                <li>Forma de pago: Según acuerdo marco comercial.</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </footer>
                         </div>
                     </div>
                 </div>
 
-                <!-- Empty State -->
                 <div id="placeholder" class="bg-white border-2 border-dashed border-slate-200 rounded-3xl py-32 text-center">
-                    <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-2xl">📝</span>
-                    </div>
-                    <p class="text-slate-400 font-bold max-w-xs mx-auto">Introduce los datos del cliente para redactar la propuesta comercial</p>
+                    <p class="text-slate-400 font-bold text-sm">Introduce la contraseña y los datos para generar la propuesta</p>
                 </div>
             </main>
         </div>
     </div>
 
     <script>
-        /**
-         * CONFIGURACIÓN DE SEGURIDAD
-         * Introduce aquí tu clave de Google AI Studio. 
-         * No la subas públicamente si quieres mantenerla privada.
-         */
-        const apiKey = "AIzaSyDYYhWnA_5bu2bFQjBfjJTX9Z9vT3JfHsw"; 
+        let validApiKey = "";
+        let workingModel = "";
 
-        // Cálculo dinámico de FUNDAE
-        function updateFundaeLogic() {
-            const importe = parseFloat(document.getElementById('presupuestoInput').value) || 0;
-            const horas = parseFloat(document.getElementById('displayHoras').value) || 1;
-            
-            if (importe > 0 && horas > 0) {
-                const minTrabajadores = Math.ceil(importe / horas / 13);
-                document.getElementById('numAlumnosCalc').innerText = minTrabajadores;
-            } else {
-                document.getElementById('numAlumnosCalc').innerText = "--";
+        window.onload = () => {
+            const savedKey = sessionStorage.getItem('wake_up_api_key');
+            if(savedKey) {
+                document.getElementById('inputApiKey').value = savedKey;
+                testAndUnlock();
+            }
+        };
+
+        // Función para que el textarea del título crezca automáticamente
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        async function testAndUnlock() {
+            const key = document.getElementById('inputApiKey').value.trim();
+            const badge = document.getElementById('statusBadge');
+            if(!key) return;
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                const data = await res.json();
+                if(!res.ok) throw new Error("Clave inválida");
+
+                validApiKey = key;
+                workingModel = "gemini-2.5-flash-preview-09-2025";
+                sessionStorage.setItem('wake_up_api_key', key);
+
+                badge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Sistema Activo`;
+                badge.className = "px-4 py-2 rounded-full bg-green-50 text-green-700 text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-green-200";
+                document.getElementById('configFields').classList.remove('opacity-40', 'pointer-events-none');
+            } catch (err) {
+                badge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Error Contraseña`;
+                sessionStorage.removeItem('wake_up_api_key');
             }
         }
 
-        // Event Listeners
-        document.getElementById('presupuestoInput').addEventListener('input', (e) => {
-            const val = e.target.value;
-            const display = document.getElementById('displayPresupuesto');
-            display.innerText = val ? new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val) : "0.00 €";
-            updateFundaeLogic();
-        });
-
-        document.getElementById('displayHoras').addEventListener('input', (e) => {
-            document.getElementById('printHoras').innerText = e.target.value;
-            updateFundaeLogic();
-        });
-
-        document.getElementById('displayTitulo').addEventListener('input', (e) => {
-            document.getElementById('printTitulo').innerText = e.target.value;
-        });
-
-        // Llamada a la API con gestión de errores mejorada
-        async function fetchAI(userPrompt, systemPrompt) {
-            if (!apiKey) {
-                throw new Error("Falta la API Key de Google.");
-            }
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
-            let retries = 0;
-            const maxRetries = 3;
-
-            while (retries < maxRetries) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: userPrompt }] }],
-                            systemInstruction: { parts: [{ text: systemPrompt }] },
-                            generationConfig: { 
-                                responseMimeType: "application/json",
-                                temperature: 0.7 
-                            }
-                        })
-                    });
-
-                    if (!response.ok) throw new Error("Respuesta de API no válida");
-                    
-                    const data = await response.json();
-                    return JSON.parse(data.candidates[0].content.parts[0].text);
-                } catch (e) {
-                    retries++;
-                    if (retries === maxRetries) throw e;
-                    await new Promise(r => setTimeout(r, 1000 * retries));
-                }
-            }
+        async function callAI(prompt, system) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${workingModel}:generateContent?key=${validApiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `${system}\n\n${prompt}` }] }],
+                    generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
+                })
+            });
+            const data = await response.json();
+            return JSON.parse(data.candidates[0].content.parts[0].text);
         }
 
         async function generarPropuesta() {
             const config = {
                 cliente: document.getElementById('nombreCliente').value,
-                sector: document.getElementById('empresa').value,
-                perfil: document.getElementById('alumnado').value,
-                meta: document.getElementById('necesidades').value,
-                presupuesto: document.getElementById('presupuestoInput').value
+                perfil: document.getElementById('perfilAlumnado').value,
+                necesidades: document.getElementById('necesidades').value,
+                presupuesto: parseFloat(document.getElementById('presupuestoInput').value) || 0
             };
 
-            if (!config.cliente || !config.meta) {
-                alert("Mínimo: Empresa y Necesidades.");
-                return;
+            if(!config.cliente || !config.necesidades || !config.presupuesto) {
+                return alert("Por favor, introduce el cliente, sus necesidades y el presupuesto.");
             }
 
-            // UI State
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('placeholder').classList.add('hidden');
             document.getElementById('proposalContainer').classList.add('hidden');
-            document.getElementById('btnGenerar').disabled = true;
 
-            const sys = "Eres el director académico de Wake Up. Escribes propuestas persuasivas, elegantes y profesionales. Devuelve JSON: { titulo, objetivos:[], contenidos, ventajas:[], horasSugeridas }";
-            const prompt = `Propuesta para: ${config.cliente}. Sector: ${config.sector}. Alumnado: ${config.perfil}. Necesidades: ${config.meta}.`;
+            const sys = "Eres consultor experto de Wake Up. Diseña una propuesta formativa. Sugiere una duración en HORAS realista. Responde en JSON: { titulo: string, objetivos: string[], contexto: string, contenidos: string, horasSugeridas: number }";
+            const prompt = `Cliente: ${config.cliente}. Perfil: ${config.perfil}. Necesidades: ${config.necesidades}. Inversión: ${config.presupuesto}€.`;
 
             try {
-                const data = await fetchAI(prompt, sys);
-                render(data, config);
+                const json = await callAI(prompt, sys);
+                render(json, config);
             } catch (err) {
-                console.error(err);
-                alert("Error: Asegúrate de que la API Key es válida y tienes conexión.");
+                alert("Error al generar: " + err.message);
                 document.getElementById('placeholder').classList.remove('hidden');
             } finally {
                 document.getElementById('loading').classList.add('hidden');
-                document.getElementById('btnGenerar').disabled = false;
             }
         }
 
         function render(data, config) {
             document.getElementById('proposalContainer').classList.remove('hidden');
-            document.getElementById('btnPrint').classList.remove('hidden');
             document.getElementById('displayFecha').innerText = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
             document.getElementById('displayClienteHeader').innerText = config.cliente;
-            document.getElementById('displayContexto').innerText = `Estrategia formativa personalizada para ${config.cliente} centrada en ${config.perfil}.`;
             
-            document.getElementById('displayTitulo').value = data.titulo;
-            document.getElementById('printTitulo').innerText = data.titulo;
+            // Renderizamos el título en el textarea y ajustamos altura
+            const titleEl = document.getElementById('displayTitulo');
+            titleEl.value = data.titulo;
+            autoResize(titleEl);
+            
+            document.getElementById('displayContexto').innerText = data.contexto;
+            document.getElementById('displayContenidos').innerText = data.contenidos;
+            document.getElementById('displayPresupuesto').innerText = `${new Intl.NumberFormat('es-ES').format(config.presupuesto)} €`;
+            
+            document.getElementById('displayHoras').value = data.horasSugeridas;
+            recalcularCondiciones();
 
             const objList = document.getElementById('displayObjetivos');
-            objList.innerHTML = data.objetivos.map(o => `
-                <li class="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-700 flex items-center gap-3 border border-slate-100">
-                    <span class="w-2 h-2 bg-red-500 rounded-full"></span> ${o}
-                </li>`).join('');
-
-            document.getElementById('displayContenidos').innerHTML = `
-                <div id="rawContenidos" class="text-sm whitespace-pre-line leading-loose font-medium">${data.contenidos}</div>`;
-
-            const ventList = document.getElementById('displayVentajas');
-            ventList.innerHTML = data.ventajas.map(v => `
-                <li class="text-xs font-bold text-slate-600 flex items-center gap-2 italic">
-                    <span class="text-red-500">◆</span> ${v}
-                </li>`).join('');
-
-            document.getElementById('displayHoras').value = data.horasSugeridas;
-            document.getElementById('printHoras').innerText = data.horasSugeridas;
-            
-            updateFundaeLogic();
+            objList.innerHTML = data.objetivos.map(o => `<li class="text-slate-600 text-sm flex gap-3 italic"><span class="text-red-500 font-bold">•</span> ${o}</li>`).join('');
             document.getElementById('proposalContainer').scrollIntoView({ behavior: 'smooth' });
         }
 
-        async function mejorarTitulo() {
-            const t = document.getElementById('displayTitulo').value;
-            const n = document.getElementById('necesidades').value;
-            try {
-                const res = await fetchAI(`Mejora este título: ${t}. Info: ${n}`, "Devuelve JSON: { nuevoTitulo }");
-                document.getElementById('displayTitulo').value = res.nuevoTitulo;
-                document.getElementById('printTitulo').innerText = res.nuevoTitulo;
-            } catch (e) {}
+        function recalcularCondiciones() {
+            const horas = parseFloat(document.getElementById('displayHoras').value) || 1;
+            const presupuesto = parseFloat(document.getElementById('presupuestoInput').value) || 0;
+            document.getElementById('printHoras').innerText = horas;
+            const personasBonificables = Math.ceil(presupuesto / horas / 13);
+            document.getElementById('condicionPersonas').innerText = `Para la bonificación del 100% del presupuesto, al menos deben finalizar la formación ${personasBonificables} trabajadores por grupo.`;
         }
 
-        async function expandirContenidos() {
-            const c = document.getElementById('rawContenidos').innerText;
+        async function mejorarDetalle() {
+            const current = document.getElementById('displayContenidos').innerText;
             try {
-                const res = await fetchAI(`Haz más detallado este temario: ${c}`, "Devuelve JSON: { contenidosExpandidos }");
-                document.getElementById('displayContenidos').innerHTML = `<div id="rawContenidos" class="text-sm whitespace-pre-line leading-loose font-medium">${res.contenidosExpandidos}</div>`;
-            } catch (e) {}
+                const res = await callAI(`Mejora este temario: ${current}`, "JSON: { contenidos: string }");
+                document.getElementById('displayContenidos').innerText = res.contenidos;
+            } catch(e) {}
         }
     </script>
 </body>
-
 </html>
