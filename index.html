@@ -15,7 +15,8 @@
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white; padding: 0; margin: 0; }
-            .proposal-card { border: none !important; box-shadow: none !important; width: 100%; max-width: 100%; }
+            .proposal-card { border: none !important; box-shadow: none !important; width: 100%; max-width: 100%; display: block !important; }
+            
             .corporate-header { 
                 background-color: var(--brand-red) !important; 
                 -webkit-print-color-adjust: exact; 
@@ -23,14 +24,15 @@
             }
             .corporate-header * { color: white !important; }
             
-            /* Ajuste crítico para impresión: elimina bordes y asegura que todo el texto sea visible */
-            #displayTitulo { 
-                border: none !important; 
-                padding: 0 !important; 
-                overflow: hidden !important;
+            /* Asegurar que el título fluya en el PDF */
+            #displayTitulo { display: none !important; } /* Ocultamos el textarea en el PDF */
+            #printTituloReal { 
+                display: block !important; 
+                white-space: normal !important; 
+                overflow: visible !important;
                 height: auto !important;
-                width: 100% !important;
-                display: block !important;
+                font-weight: 900;
+                line-height: 1.2;
             }
         }
 
@@ -50,12 +52,6 @@
             transition: all 0.3s ease;
         }
 
-        .sparkle-button:hover:not(:disabled) {
-            filter: brightness(1.1);
-            transform: translateY(-1px);
-        }
-
-        /* Estilo para que el área de texto del título crezca y no se corte */
         #displayTitulo {
             resize: none;
             overflow: hidden;
@@ -64,6 +60,8 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
+
+        .print-only { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8 font-sans">
@@ -134,12 +132,15 @@
                                 <label class="text-[9px] font-black text-red-500 uppercase tracking-[0.2em]">Título del Curso (Editable)</label>
                             </div>
                             
-                            <!-- TITAREA CON AUTO-RESIZE -->
+                            <!-- Elemento para pantalla -->
                             <textarea id="displayTitulo" 
                                       rows="1" 
-                                      oninput="autoResize(this)" 
+                                      oninput="updateTitle(this)" 
                                       class="w-full text-3xl font-black text-slate-800 leading-tight mb-6 bg-transparent border-b border-dashed border-slate-200 focus:border-red-500 outline-none transition-colors" 
                                       placeholder="Título de la formación"></textarea>
+                            
+                            <!-- Elemento exclusivo para PDF -->
+                            <h2 id="printTituloReal" class="text-3xl font-black text-slate-800 leading-tight mb-6 print-only"></h2>
                             
                             <div class="flex flex-wrap gap-8 border-y border-slate-100 py-6">
                                 <div>
@@ -209,23 +210,27 @@
         let validApiKey = "";
         let workingModel = "gemini-2.5-flash-preview-09-2025";
 
-        function autoResize(textarea) {
+        function updateTitle(textarea) {
+            // Auto resize visual
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
+            // Sincronizar con el elemento de impresión
+            document.getElementById('printTituloReal').innerText = textarea.value;
         }
 
         async function testAndUnlock() {
             const key = document.getElementById('inputApiKey').value.trim();
             if(!key) return;
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                // Cambiado para ser más robusto y evitar errores de versión
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${workingModel}?key=${key}`);
                 if(!res.ok) throw new Error();
                 validApiKey = key;
                 sessionStorage.setItem('wake_up_api_key', key);
                 document.getElementById('statusBadge').innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full"></span> Conectado`;
                 document.getElementById('configFields').classList.remove('opacity-40', 'pointer-events-none');
             } catch (err) {
-                alert("Error de conexión o clave inválida.");
+                document.getElementById('statusBadge').innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Error de Clave`;
             }
         }
 
@@ -250,11 +255,12 @@
                     })
                 });
                 const data = await response.json();
+                if(!data.candidates) throw new Error("API Error");
                 const json = JSON.parse(data.candidates[0].content.parts[0].text);
                 
                 render(json, cliente, presupuesto);
             } catch (err) {
-                alert("Error generando contenido");
+                alert("Error técnico: " + (err.message || "Fallo en la conexión"));
                 document.getElementById('placeholder').classList.remove('hidden');
             } finally {
                 document.getElementById('loading').classList.add('hidden');
@@ -266,10 +272,9 @@
             document.getElementById('displayFecha').innerText = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
             document.getElementById('displayClienteHeader').innerText = cliente;
             
-            // Título con auto-resize inmediato
             const titleEl = document.getElementById('displayTitulo');
             titleEl.value = data.titulo;
-            autoResize(titleEl);
+            updateTitle(titleEl);
 
             document.getElementById('displayContexto').innerText = data.contexto;
             document.getElementById('displayContenidos').innerText = data.contenidos;
@@ -287,11 +292,10 @@
             const horas = parseFloat(document.getElementById('displayHoras').value) || 1;
             const presupuesto = parseFloat(document.getElementById('presupuestoInput').value) || 0;
             document.getElementById('printHoras').innerText = horas;
-            const personas = Math.ceil(presupuesto / horas / 13);
+            const personas = Math.ceil(presupuesto / (horas * 13));
             document.getElementById('condicionPersonas').innerText = `Mínimo de alumnos para bonificación completa: ${personas} trabajadores.`;
         }
 
-        // Recuperar clave si existe
         if(sessionStorage.getItem('wake_up_api_key')) {
             document.getElementById('inputApiKey').value = sessionStorage.getItem('wake_up_api_key');
             testAndUnlock();
